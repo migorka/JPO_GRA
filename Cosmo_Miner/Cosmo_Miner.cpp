@@ -1,6 +1,7 @@
 ﻿// Cosmo_Miner.cpp: definiuje punkt wejścia dla aplikacji.
 //
 
+
 #include "Cosmo_Miner.h"
 #include "raylib.h"
 #include <vector>
@@ -8,10 +9,12 @@
 #include <algorithm>
 #include <random>
 #include <string>
-#include <gtest/gtest.h>
 
+// Ustawienie zmiennych rozmiaru okna
 const float scrWidth{ 1920 };
 const float scrHeight{ 1080 };
+
+int screen = 1;
 
 float getLength(Vector2 v)
 {
@@ -23,13 +26,14 @@ class Player
 public:
 	Vector2 pos{};
 	Vector2 speed{};
-	float speedMax{};
 	float rot{};
 	int points{};
 	bool alive{};
+	int HP{};
 
 	void movement()
 	{
+		//Przenoszenie gracza na przeciwległą krawędź ekranu
 		if (pos.x < 0)
 			pos.x = scrWidth;
 		if (pos.x > scrWidth)
@@ -39,17 +43,31 @@ public:
 		if (pos.y > scrHeight)
 			pos.y = 0;
 
+		//Obrót w lewo
 		if (IsKeyDown(KEY_A))
 			rot -= 5;
+		//Obrót w prawo
 		if (IsKeyDown(KEY_D))
 			rot += 5;
 		if (IsKeyDown(KEY_W))
 		{
+			//Obliczanie wektora ruchu na bazie kąta obrotu gracza
 			speed.x += cos((rot - 90) * PI / 180) * 0.2;
 			speed.y += sin((rot - 90) * PI / 180) * 0.2;
 		}
+		//Zmiana pozycji gracza o jego prędkość
 		pos.x += speed.x;
 		pos.y += speed.y;
+	}
+
+	void takeDMG()
+	{
+		HP -= 1;
+		if (HP <= 0)
+		{
+			alive = 0;
+			screen = 2;
+		}
 	}
 };
 
@@ -151,19 +169,19 @@ void Game()
 	Texture2D texPlayer = LoadTexture("rsc/Main Ship - Base - Full health.png");
 	Texture2D texPlayerThru = LoadTexture("rsc/Main Ship - Base - Thruster.png");
 	Texture2D texBackground = LoadTexture("rsc/background.png");
+	Texture2D texHeart = LoadTexture("rsc/heart.png");
 
 	Player player;
 	player.rot = 0;
 	player.pos = { scrWidth / 2, scrHeight / 2 };
 	player.points = 0;
 	player.alive = true;
+	player.HP = 3;
 
 	std::vector<Laser> lasers;
 	std::vector<Asteroid> asteroids;
 
 	float asteroidCurrentCD{ 3 };
-
-	int screen = 1;
 
 	while (!WindowShouldClose())
 	{
@@ -182,7 +200,7 @@ void Game()
 				laser.movement();
 		}
 
-		//STRZELANIE
+		//Strzelanie
 		if (IsKeyPressed(KEY_SPACE))
 		{
 			float speedX = cos((player.rot - 90) * PI / 180) * 10;
@@ -190,7 +208,7 @@ void Game()
 			lasers.emplace_back(player.pos, speedX, speedY, true);
 		}
 
-		//GENEROWANIE NOWYCH ASTEROID WEWNĄTRZ KONTENERA
+		//Generowanie nowych asteroid
 		asteroidCurrentCD -= deltaTime;
 		if (asteroidCurrentCD <= 0)
 		{
@@ -212,24 +230,21 @@ void Game()
 
 				if (asteroid.size == 1 && CheckCollisionCircles(asteroid.pos, 20, player.pos, 20))
 				{
-					player.alive = false;
-					screen = 2;
+					player.takeDMG();
 					asteroid.active = false;
 					asteroid.~Asteroid();
 				}
 
 				if (asteroid.size == 2 && CheckCollisionCircles(asteroid.pos, 50, player.pos, 20))
 				{
-					player.alive = false;
-					screen = 2;
+					player.takeDMG();
 					asteroid.active = false;
 					asteroid.~Asteroid();
 				}
 
 				if (asteroid.size == 3 && CheckCollisionCircles(asteroid.pos, 100, player.pos, 20))
 				{
-					player.alive = false;
-					screen = 2;
+					player.takeDMG();
 					asteroid.active = false;
 					asteroid.~Asteroid();
 				}
@@ -294,6 +309,7 @@ void Game()
 			player.pos = { scrWidth / 2, scrHeight / 2 };
 			player.points = 0;
 			player.speed = { 0, 0 };
+			player.HP = 3;
 			player.alive = 1;
 			asteroids.clear();
 			lasers.clear();
@@ -350,6 +366,12 @@ void Game()
 			//DrawCircle(960, 540, 5, RED);
 
 			DrawText(TextFormat("POINTS: %.d", player.points), 50, 50, 20, WHITE);
+
+			for (float i = 1; i <= player.HP; i++)
+			{
+				DrawTexturePro(texHeart, { 0, 0, (float)texHeart.width, (float)texHeart.height }, { 70 * i, 100, 50, 50 }, { 25, 25 }, 0, WHITE);
+			}
+
 			break;
 
 		case 2:
@@ -365,25 +387,8 @@ void Game()
 	CloseWindow();
 }
 
-int Add(int a, int b)
-{
-	return a + b;
-}
-
-TEST(AddTest, PositiveNumbers)
-{
-	int a = 2;
-	int b = 3;
-
-	int result = Add(a, b);
-
-	EXPECT_EQ(result, 5);
-}
-
-
 int main(int argc, char** argv)
 {
 	Game();
-	testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
+	return 0;
 }

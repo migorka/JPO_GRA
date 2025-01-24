@@ -11,6 +11,8 @@ endif()
 
 project ("Cosmo_Miner")
 
+#set(CMAKE_CXX_FLAGS_DEBUG "/MTd")
+
 # Dodaj źródło do pliku wykonywalnego tego projektu.
 add_executable (Cosmo_Miner "Cosmo_Miner.cpp" "Cosmo_Miner.h")
 
@@ -34,6 +36,10 @@ include(FetchContent)
         GIT_TAG main
     )
     FetchContent_MakeAvailable(gtest)
-target_link_libraries(Cosmo_Miner PRIVATE gtest gtest_main raylib)
+target_link_libraries(Cosmo_Miner PRIVATE raylib)
+
+add_executable(Cosmo_Miner_tests "Cosmo_Miner_tests.cpp")
+target_link_libraries(Cosmo_Miner_tests PRIVATE gtest gtest_main)
+target_compile_options(Cosmo_Miner_tests PRIVATE "/MTd")
 
 file(COPY ${CMAKE_SOURCE_DIR}/rsc DESTINATION ${CMAKE_BINARY_DIR})
