@@ -166,10 +166,18 @@ void Game()
 	InitWindow(scrWidth, scrHeight, "Cosmo Miner");
 	SetTargetFPS(60);
 
+	InitAudioDevice();
+
 	Texture2D texPlayer = LoadTexture("rsc/Main Ship - Base - Full health.png");
 	Texture2D texPlayerThru = LoadTexture("rsc/Main Ship - Base - Thruster.png");
 	Texture2D texBackground = LoadTexture("rsc/background.png");
 	Texture2D texHeart = LoadTexture("rsc/heart.png");
+
+	Sound fxLaser = LoadSound("rsc/LASRGun_Classic Blaster A Fire_03.wav");
+	Sound fxExplosion = LoadSound("rsc/EXPLDsgn_Explosion Impact_14.wav");
+
+	Music music = LoadMusicStream("rsc/Final Solitaire.wav");
+	PlayMusicStream(music);
 
 	Player player;
 	player.rot = 0;
@@ -185,6 +193,8 @@ void Game()
 
 	while (!WindowShouldClose())
 	{
+		UpdateMusicStream(music);
+
 		double deltaTime = GetFrameTime();
 		player.movement();
 
@@ -203,6 +213,7 @@ void Game()
 		//Strzelanie
 		if (IsKeyPressed(KEY_SPACE))
 		{
+			PlaySound(fxLaser);
 			float speedX = cos((player.rot - 90) * PI / 180) * 10;
 			float speedY = sin((player.rot - 90) * PI / 180) * 10;
 			lasers.emplace_back(player.pos, speedX, speedY, true);
@@ -230,6 +241,7 @@ void Game()
 
 				if (asteroid.size == 1 && CheckCollisionCircles(asteroid.pos, 20, player.pos, 20))
 				{
+					PlaySound(fxExplosion);
 					player.takeDMG();
 					asteroid.active = false;
 					asteroid.~Asteroid();
@@ -237,6 +249,7 @@ void Game()
 
 				if (asteroid.size == 2 && CheckCollisionCircles(asteroid.pos, 50, player.pos, 20))
 				{
+					PlaySound(fxExplosion);
 					player.takeDMG();
 					asteroid.active = false;
 					asteroid.~Asteroid();
@@ -244,6 +257,7 @@ void Game()
 
 				if (asteroid.size == 3 && CheckCollisionCircles(asteroid.pos, 100, player.pos, 20))
 				{
+					PlaySound(fxExplosion);
 					player.takeDMG();
 					asteroid.active = false;
 					asteroid.~Asteroid();
@@ -257,6 +271,7 @@ void Game()
 						{
 							if (CheckCollisionCircles(asteroid.pos, 20, laser.pos, 5))
 							{
+								PlaySound(fxExplosion);
 								if (player.alive)
 									player.points += 10;
 								asteroid.active = false;
@@ -269,6 +284,7 @@ void Game()
 						{
 							if (CheckCollisionCircles(asteroid.pos, 50, laser.pos, 5))
 							{
+								PlaySound(fxExplosion);
 								if (player.alive)
 									player.points += 20;
 								float speedX = cos((asteroidRotGen(gen) - 90) * PI / 180) * 2;
@@ -284,6 +300,7 @@ void Game()
 						{
 							if (CheckCollisionCircles(asteroid.pos, 100, laser.pos, 5))
 							{
+								PlaySound(fxExplosion);
 								if (player.alive)
 									player.points += 30;
 								float speedX = cos((asteroidRotGen(gen) - 90) * PI / 180) * 2;
