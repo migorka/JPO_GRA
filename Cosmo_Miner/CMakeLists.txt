@@ -22,6 +22,8 @@ endif()
 
 # TODO: Dodaj testy i zainstaluj elementy docelowe w razie potrzeby.
 
+# CMake został zrobiony z dużą pomocą chatuGPT
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
