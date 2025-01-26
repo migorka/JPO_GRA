@@ -1,7 +1,7 @@
 ﻿# CMakeList.txt: projekt CMake dla elementu Cosmo_Miner, dołącz źródło i zdefiniuj
 # tutaj logikę specyficzną dla projektu.
 #
-cmake_minimum_required (VERSION 3.8)
+cmake_minimum_required (VERSION 3.20)
 
 # Włącz przeładowywanie kodu XAML na gorąco dla kompilatorów MSVC, jeśli jest to obsługiwane.
 if (POLICY CMP0141)
@@ -14,13 +14,19 @@ project ("Cosmo_Miner")
 #set(CMAKE_CXX_FLAGS_DEBUG "/MTd")
 
 # Dodaj źródło do pliku wykonywalnego tego projektu.
-add_executable (Cosmo_Miner "Cosmo_Miner.cpp" "Cosmo_Miner.h")
+add_executable (Cosmo_Miner "Cosmo_Miner.cpp" "Cosmo_Miner.h" "main.cpp")
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
   set_property(TARGET Cosmo_Miner PROPERTY CXX_STANDARD 20)
 endif()
 
 # TODO: Dodaj testy i zainstaluj elementy docelowe w razie potrzeby.
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreadedDebugDLL")
 
 include(FetchContent)
     FetchContent_Declare(
@@ -36,10 +42,12 @@ include(FetchContent)
         GIT_TAG main
     )
     FetchContent_MakeAvailable(gtest)
+
 target_link_libraries(Cosmo_Miner PRIVATE raylib)
 
-add_executable(Cosmo_Miner_tests "Cosmo_Miner_tests.cpp")
-target_link_libraries(Cosmo_Miner_tests PRIVATE gtest gtest_main)
-target_compile_options(Cosmo_Miner_tests PRIVATE "/MTd")
+add_executable(Cosmo_Miner_tests "Cosmo_Miner_tests.cpp" "Cosmo_Miner.cpp")
+target_link_libraries(Cosmo_Miner_tests PRIVATE gtest gtest_main raylib)
+
+target_compile_options(Cosmo_Miner_tests PRIVATE "/MDd")
 
 file(COPY ${CMAKE_SOURCE_DIR}/rsc DESTINATION ${CMAKE_BINARY_DIR})

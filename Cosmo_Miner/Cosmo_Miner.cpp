@@ -14,26 +14,32 @@
 const float scrWidth{ 1920 };
 const float scrHeight{ 1080 };
 
-int screen = 1;
+// Inicjaizacja zmiennej do przełączania między ekranem gry, a ekranem przegranej
+int screen = 1; // 1 - ekran gry, 2 - ekran porażki
 
-float getLength(Vector2 v)
-{
-	return sqrt((v.x * v.x) + (v.y * v.y));
-}
+// KLASA Player
 
-class Player
-{
-public:
-	Vector2 pos{};
-	Vector2 speed{};
-	float rot{};
-	int points{};
-	bool alive{};
-	int HP{};
-
-	void movement()
+	// Fukcja ruchu gracza
+	void Player::movement()
 	{
-		//Przenoszenie gracza na przeciwległą krawędź ekranu
+		// Obrót w lewo
+		if (IsKeyDown(KEY_A))
+			rot -= 5;
+		// Obrót w prawo
+		if (IsKeyDown(KEY_D))
+			rot += 5;
+		// Ruch w przód
+		if (IsKeyDown(KEY_W))
+		{
+			// Obliczanie wektora ruchu na bazie kąta obrotu gracza
+			speed.x += cos((rot - 90) * PI / 180) * 0.2;
+			speed.y += sin((rot - 90) * PI / 180) * 0.2;
+		}
+		// Zmiana pozycji gracza o jego prędkość
+		pos.x += speed.x;
+		pos.y += speed.y;
+
+		// Przenoszenie gracza na przeciwległą krawędź ekranu
 		if (pos.x < 0)
 			pos.x = scrWidth;
 		if (pos.x > scrWidth)
@@ -42,70 +48,59 @@ public:
 			pos.y = scrHeight;
 		if (pos.y > scrHeight)
 			pos.y = 0;
-
-		//Obrót w lewo
-		if (IsKeyDown(KEY_A))
-			rot -= 5;
-		//Obrót w prawo
-		if (IsKeyDown(KEY_D))
-			rot += 5;
-		if (IsKeyDown(KEY_W))
-		{
-			//Obliczanie wektora ruchu na bazie kąta obrotu gracza
-			speed.x += cos((rot - 90) * PI / 180) * 0.2;
-			speed.y += sin((rot - 90) * PI / 180) * 0.2;
-		}
-		//Zmiana pozycji gracza o jego prędkość
-		pos.x += speed.x;
-		pos.y += speed.y;
 	}
 
-	void takeDMG()
+	// Funkcja do otrzymywania obrażeń przez gracza
+	void Player::takeDMG()
 	{
-		HP -= 1;
-		if (HP <= 0)
+		if (invTime <= 0)
 		{
-			alive = 0;
-			screen = 2;
+			HP -= 1;
+			invTime = 3;
+			if (HP <= 0)
+			{
+				alive = 0; // Zmiana stanu gracza, aby nie 
+				screen = 2; // Przełączenie ekranu na ekran porażki
+			}
 		}
 	}
-};
 
-class Laser
-{
-public:
-	Vector2 pos;
-	Vector2 speed;
-	bool active;
+	void Player::changeColor()
+	{
+		if (invTime <= 0)
+			tint = WHITE;
+		else
+			tint = RED;
+	}
 
-	Laser(Vector2 playerPos, float speedX, float speedY, bool T)
+// KLASA Laser
+
+	// Konstruktor
+	Laser::Laser(Vector2 playerPos, float speedX, float speedY, bool T)
 	{
 		pos = playerPos;
 		speed = { speedX, speedY };
 		active = T;
 	}
 
-	~Laser()
+	// Destruktor
+	Laser::~Laser()
 	{
 
 	}
 
-	void movement()
+	// Funkcja ruchu lasera
+	void Laser::movement()
 	{
+		// Aktualizacja pozycji lasera na bazie jego prędkości
 		pos.x += speed.x;
 		pos.y += speed.y;
 	}
-};
 
-class Asteroid
-{
-public:
-	Vector2 pos;
-	Vector2 speed;
-	bool active;
-	int size;
+//KLASA Asteroid
 
-	Asteroid(Vector2 startingPos, float speedX, float speedY, bool activeConstr, int sizeConstr)
+	// Konstruktor
+	Asteroid::Asteroid(Vector2 startingPos, float speedX, float speedY, bool activeConstr, int sizeConstr)
 	{
 		pos = startingPos;
 		speed = { speedX, speedY };
@@ -113,13 +108,20 @@ public:
 		size = sizeConstr;
 	}
 
-	~Asteroid()
+	// Destruktor
+	Asteroid::~Asteroid()
 	{
 
 	}
 
-	void movement()
+	// Funkcja ruchu asteroidy
+	void Asteroid::movement()
 	{
+		// Aktualizacja pozycji asteroidy na bazie jej prędkości
+		pos.x += speed.x;
+		pos.y += speed.y;
+
+		// Przenoszenie asteroidy na przeciwległą krawędź ekranu
 		if (pos.x < 0)
 			pos.x = scrWidth;
 		if (pos.x > scrWidth)
@@ -128,22 +130,21 @@ public:
 			pos.y = scrHeight;
 		if (pos.y > scrHeight)
 			pos.y = 0;
-
-		pos.x += speed.x;
-		pos.y += speed.y;
 	}
-};
 
+// Funckja do generowania pozycji startowej asteroidy
 Vector2 startingPos()
 {
+	// Inicjalizacja funkcjii losowania o różych zakresach
 	std::random_device random;
 	std::mt19937 gen(random());
 	std::uniform_int_distribution<> wallGen(1, 4);
 	std::uniform_int_distribution<> widthGen(0, 1920);
 	std::uniform_int_distribution<> heightGen(0, 1080);
 
-	int wall = wallGen(gen);
+	int wall = wallGen(gen); // Losowanie jednej z 4 ścian
 
+	// Generacja pozycji w zależności od wylosowanej ściany
 	if (wall == 1)
 		return { 0, (float)heightGen(gen) };
 	if (wall == 2)
@@ -154,6 +155,8 @@ Vector2 startingPos()
 		return { (float)widthGen(gen), scrHeight };
 }
 
+
+// Funkcja główna gry
 void Game()
 {
 	std::random_device random;
@@ -178,6 +181,8 @@ void Game()
 
 	Music music = LoadMusicStream("rsc/Final Solitaire.wav");
 	PlayMusicStream(music);
+	
+	SetMasterVolume(0.3);
 
 	Player player;
 	player.rot = 0;
@@ -196,7 +201,12 @@ void Game()
 		UpdateMusicStream(music);
 
 		double deltaTime = GetFrameTime();
+
 		player.movement();
+
+		player.changeColor();
+
+		player.invTime -= deltaTime;
 
 		for (auto& laser : lasers)
 		{
@@ -210,7 +220,7 @@ void Game()
 				laser.movement();
 		}
 
-		//Strzelanie
+		// Strzelanie
 		if (IsKeyPressed(KEY_SPACE))
 		{
 			PlaySound(fxLaser);
@@ -219,7 +229,7 @@ void Game()
 			lasers.emplace_back(player.pos, speedX, speedY, true);
 		}
 
-		//Generowanie nowych asteroid
+		// Generowanie nowych asteroid
 		asteroidCurrentCD -= deltaTime;
 		if (asteroidCurrentCD <= 0)
 		{
@@ -232,7 +242,7 @@ void Game()
 			asteroidCurrentCD = asteroidNewCDGen(gen);
 		}
 
-		//RUCH I SPRAWDZANIE KOLIZJI ASTEROID
+		// Ruch i sprawdzanie kolizji asteroid
 		for (auto& asteroid : asteroids)
 		{
 			if (asteroid.active)
@@ -351,11 +361,11 @@ void Game()
 
 			if (IsKeyDown(KEY_W))
 			{
-				DrawTexturePro(texPlayerThru, { 0, 0, (float)texPlayer.width, (float)texPlayer.height }, { player.pos.x, player.pos.y, 100, 100 }, { 50, 50 }, player.rot, WHITE);
+				DrawTexturePro(texPlayerThru, { 0, 0, (float)texPlayer.width, (float)texPlayer.height }, { player.pos.x, player.pos.y, 100, 100 }, { 50, 50 }, player.rot, player.tint);
 			}
 			else
 			{
-				DrawTexturePro(texPlayer, { 0, 0, (float)texPlayer.width, (float)texPlayer.height }, { player.pos.x, player.pos.y, 100, 100 }, { 50, 50 }, player.rot, WHITE);
+				DrawTexturePro(texPlayer, { 0, 0, (float)texPlayer.width, (float)texPlayer.height }, { player.pos.x, player.pos.y, 100, 100 }, { 50, 50 }, player.rot, player.tint);
 			}
 
 			for (auto& asteroid : asteroids)
@@ -380,8 +390,6 @@ void Game()
 				}
 			}
 
-			//DrawCircle(960, 540, 5, RED);
-
 			DrawText(TextFormat("POINTS: %.d", player.points), 50, 50, 20, WHITE);
 
 			for (float i = 1; i <= player.HP; i++)
@@ -402,10 +410,4 @@ void Game()
 	}
 
 	CloseWindow();
-}
-
-int main(int argc, char** argv)
-{
-	Game();
-	return 0;
 }

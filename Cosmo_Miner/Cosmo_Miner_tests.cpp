@@ -1,20 +1,26 @@
 #include <gtest/gtest.h>
+#include "Cosmo_Miner.h"
 
-int Add(int a, int b)
+TEST(PlayerMovementTest, PlayerSimpleMovement)
 {
-    return a + b;
+    Player player;
+    player.pos = { 10 , 10 };
+    player.speed = { 100, 100 };
+    player.movement();
+    EXPECT_EQ(player.pos.x, 110);
+    EXPECT_EQ(player.pos.y, 110);
 }
 
-TEST(AddTest, PositiveNumbers)
+TEST(PlayerMovementTest, PlayerMovementBesidesBorder)
 {
-    int a = 2;
-    int b = 3;
-    int result = Add(a, b);
-    EXPECT_EQ(result, 5);
+    Player player;
+    player.pos = { 0, 0 };
+    player.speed.x = -10;
+    player.movement();
+    EXPECT_EQ(player.pos.x, 1920);
 }
 
-int main(int argc, char** argv)
-{
+int main(int argc, char** argv) {
     testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }
