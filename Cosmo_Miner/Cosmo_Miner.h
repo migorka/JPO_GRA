@@ -4,12 +4,9 @@
 #pragma once
 
 #include <iostream>
-
-#ifndef COSMO_MINER_H
-#define COSMO_MINER_H
-
 #include "raylib.h"
 #include <vector>
+#include <random>
 
 // Stałe rozmiarów ekranu
 extern const float scrWidth;
@@ -28,12 +25,10 @@ public:
     int points{};
     bool alive{};
     int HP{};
-    uint8_t invTime{};
-    Color tint{};
 
     void movement();
     void takeDMG();
-    void changeColor();
+    void reset();
 };
 
 // Klasa reprezentująca laser
@@ -66,8 +61,33 @@ public:
 // Funkcja generująca pozycję początkową
 Vector2 startingPos();
 
-// Funkcja główna gry
-void Game();
+class Game
+{
+public:
+    Texture2D texPlayer;
+    Texture2D texPlayerThru;
+    Texture2D texBackground;
+    Texture2D texHeart;
 
-#endif // COSMO_MINER_H
+    Sound fxLaser;
+    Sound fxExplosion;
 
+    Music music;
+
+
+    Player player;
+    std::vector<Laser> lasers;
+    std::vector<Asteroid> asteroids;
+
+    double deltaTime;
+    float asteroidCurrentCD;
+
+    void loadRSC();
+    void laserUpdate();       // Aktualizacja stanu laserów
+    void shootLaser();        // Wystrzeliwanie laserów
+    void asteroidGen();       // Generowanie asteroid
+    void asteroidCollisions();// Obsługa kolizji asteroid
+    void reset();             // Reset gry
+
+    void run();               // Uruchomienie gry
+};

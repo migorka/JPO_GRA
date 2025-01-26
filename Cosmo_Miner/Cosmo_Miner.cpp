@@ -53,25 +53,25 @@ int screen = 1; // 1 - ekran gry, 2 - ekran porażki
 	// Funkcja do otrzymywania obrażeń przez gracza
 	void Player::takeDMG()
 	{
-		if (invTime <= 0)
+
+		HP -= 1;
+		if (HP <= 0)
 		{
-			HP -= 1;
-			invTime = 3;
-			if (HP <= 0)
-			{
-				alive = 0; // Zmiana stanu gracza, aby nie 
-				screen = 2; // Przełączenie ekranu na ekran porażki
-			}
+			alive = 0; // Zmiana stanu gracza, aby nie 
+			screen = 2; // Przełączenie ekranu na ekran porażki
 		}
 	}
 
-	void Player::changeColor()
+	void Player::reset()
 	{
-		if (invTime <= 0)
-			tint = WHITE;
-		else
-			tint = RED;
+		rot = 0;
+		pos = { scrWidth / 2, scrHeight / 2 };
+		points = 0;
+		alive = true;
+		HP = 3;
+		speed = { 0, 0 };
 	}
+
 
 // KLASA Laser
 
@@ -156,58 +156,11 @@ Vector2 startingPos()
 }
 
 
-// Funkcja główna gry
-void Game()
-{
-	std::random_device random;
-	std::mt19937 gen(random());
-	std::uniform_int_distribution<> asteroidNumberGen(2, 5);
-	std::uniform_int_distribution<> asteroidNewCDGen(3, 10);
-	std::uniform_int_distribution<> asteroidRotGen(0, 360);
-	std::uniform_int_distribution<> asteroidSizeGen(1, 3);
+// KLASA Game
 
-	InitWindow(scrWidth, scrHeight, "Cosmo Miner");
-	SetTargetFPS(60);
-
-	InitAudioDevice();
-
-	Texture2D texPlayer = LoadTexture("rsc/Main Ship - Base - Full health.png");
-	Texture2D texPlayerThru = LoadTexture("rsc/Main Ship - Base - Thruster.png");
-	Texture2D texBackground = LoadTexture("rsc/background.png");
-	Texture2D texHeart = LoadTexture("rsc/heart.png");
-
-	Sound fxLaser = LoadSound("rsc/LASRGun_Classic Blaster A Fire_03.wav");
-	Sound fxExplosion = LoadSound("rsc/EXPLDsgn_Explosion Impact_14.wav");
-
-	Music music = LoadMusicStream("rsc/Final Solitaire.wav");
-	PlayMusicStream(music);
-	
-	SetMasterVolume(0.3);
-
-	Player player;
-	player.rot = 0;
-	player.pos = { scrWidth / 2, scrHeight / 2 };
-	player.points = 0;
-	player.alive = true;
-	player.HP = 3;
-
-	std::vector<Laser> lasers;
-	std::vector<Asteroid> asteroids;
-
-	float asteroidCurrentCD{ 3 };
-
-	while (!WindowShouldClose())
+	// Funkcja do aktualizacja ruchu lasera i niszczenia laserów poza ekranem
+	void Game::laserUpdate()
 	{
-		UpdateMusicStream(music);
-
-		double deltaTime = GetFrameTime();
-
-		player.movement();
-
-		player.changeColor();
-
-		player.invTime -= deltaTime;
-
 		for (auto& laser : lasers)
 		{
 			if (laser.pos.x < 0 || laser.pos.x > scrWidth || laser.pos.y < 0 || laser.pos.y > scrHeight)
@@ -219,8 +172,10 @@ void Game()
 			if (laser.active)
 				laser.movement();
 		}
+	}
 
-		// Strzelanie
+	void Game::shootLaser()
+	{
 		if (IsKeyPressed(KEY_SPACE))
 		{
 			PlaySound(fxLaser);
@@ -228,9 +183,16 @@ void Game()
 			float speedY = sin((player.rot - 90) * PI / 180) * 10;
 			lasers.emplace_back(player.pos, speedX, speedY, true);
 		}
+	}
 
-		// Generowanie nowych asteroid
-		asteroidCurrentCD -= deltaTime;
+	void Game::asteroidGen()
+	{
+		std::random_device random;
+		std::mt19937 gen(random());
+		std::uniform_int_distribution<> asteroidNumberGen(2, 5);
+		std::uniform_int_distribution<> asteroidNewCDGen(3, 10);
+		std::uniform_int_distribution<> asteroidRotGen(0, 360);
+		std::uniform_int_distribution<> asteroidSizeGen(1, 3);
 		if (asteroidCurrentCD <= 0)
 		{
 			for (int i = 0; i < asteroidNumberGen(gen); i++)
@@ -241,8 +203,13 @@ void Game()
 			}
 			asteroidCurrentCD = asteroidNewCDGen(gen);
 		}
+	}
 
-		// Ruch i sprawdzanie kolizji asteroid
+	void Game::asteroidCollisions()
+	{
+		std::random_device random;
+		std::mt19937 gen(random());
+		std::uniform_int_distribution<> asteroidRotGen(0, 360);
 		for (auto& asteroid : asteroids)
 		{
 			if (asteroid.active)
@@ -329,85 +296,125 @@ void Game()
 				}
 			}
 		}
+	}
 
+	void Game::reset()
+	{
 		if (screen == 2 && IsKeyPressed(KEY_ENTER))
 		{
-			player.rot = 0;
-			player.pos = { scrWidth / 2, scrHeight / 2 };
-			player.points = 0;
-			player.speed = { 0, 0 };
-			player.HP = 3;
-			player.alive = 1;
+			player.reset();
 			asteroids.clear();
 			lasers.clear();
 			screen = 1;
 		}
-
-		//RYSOWANIE ----------------------------------------------------------------------------------------------
-
-		BeginDrawing();
-
-		switch (screen)
-		{
-
-		case 1:
-			DrawTexture(texBackground, 0, 0, WHITE);
-
-			for (auto& laser : lasers)
-			{
-				if (laser.active)
-					DrawCircle(laser.pos.x, laser.pos.y, 5, RED);
-			}
-
-			if (IsKeyDown(KEY_W))
-			{
-				DrawTexturePro(texPlayerThru, { 0, 0, (float)texPlayer.width, (float)texPlayer.height }, { player.pos.x, player.pos.y, 100, 100 }, { 50, 50 }, player.rot, player.tint);
-			}
-			else
-			{
-				DrawTexturePro(texPlayer, { 0, 0, (float)texPlayer.width, (float)texPlayer.height }, { player.pos.x, player.pos.y, 100, 100 }, { 50, 50 }, player.rot, player.tint);
-			}
-
-			for (auto& asteroid : asteroids)
-			{
-				if (asteroid.active)
-				{
-					if (asteroid.size == 3)
-					{
-						DrawCircle(asteroid.pos.x, asteroid.pos.y, 100, BROWN);
-						DrawCircleLines(asteroid.pos.x, asteroid.pos.y, 100, WHITE);
-					}
-					if (asteroid.size == 2)
-					{
-						DrawCircle(asteroid.pos.x, asteroid.pos.y, 50, BROWN);
-						DrawCircleLines(asteroid.pos.x, asteroid.pos.y, 50, WHITE);
-					}
-					if (asteroid.size == 1)
-					{
-						DrawCircle(asteroid.pos.x, asteroid.pos.y, 20, BROWN);
-						DrawCircleLines(asteroid.pos.x, asteroid.pos.y, 20, WHITE);
-					}
-				}
-			}
-
-			DrawText(TextFormat("POINTS: %.d", player.points), 50, 50, 20, WHITE);
-
-			for (float i = 1; i <= player.HP; i++)
-			{
-				DrawTexturePro(texHeart, { 0, 0, (float)texHeart.width, (float)texHeart.height }, { 70 * i, 100, 50, 50 }, { 25, 25 }, 0, WHITE);
-			}
-
-			break;
-
-		case 2:
-			DrawTexture(texBackground, 0, 0, WHITE);
-			DrawText("GAME OVER", (scrWidth - MeasureText("GAME OVER", 100)) / 2, scrHeight / 2, 100, RED);
-			DrawText(TextFormat("POINTS: %.d", player.points), (scrWidth - MeasureText("GAME OVER", 100)) / 2, scrHeight / 2 + 150, 50, WHITE);
-			break;
-		}
-
-		EndDrawing();
 	}
 
-	CloseWindow();
-}
+	void Game::run()
+	{
+
+		asteroidCurrentCD = 3;
+
+		InitWindow(scrWidth, scrHeight, "Cosmo Miner");
+		SetTargetFPS(60);
+
+		texPlayer = LoadTexture("rsc/Main Ship - Base - Full health.png");
+		texPlayerThru = LoadTexture("rsc/Main Ship - Base - Thruster.png");
+		texBackground = LoadTexture("rsc/background.png");
+		texHeart = LoadTexture("rsc/heart.png");
+
+		InitAudioDevice();
+
+		fxLaser = LoadSound("rsc/LASRGun_Classic Blaster A Fire_03.wav");
+		fxExplosion = LoadSound("rsc/EXPLDsgn_Explosion Impact_14.wav");
+
+		music = LoadMusicStream("rsc/Final Solitaire.wav");
+
+		PlayMusicStream(music);
+
+		SetMasterVolume(0.3);
+
+		player.reset();
+
+		while (!WindowShouldClose())
+		{
+			UpdateMusicStream(music);
+
+			deltaTime = GetFrameTime();
+
+			player.movement();
+
+			laserUpdate();
+
+			shootLaser();
+
+			asteroidCurrentCD -= deltaTime;
+			asteroidGen();
+
+			asteroidCollisions();
+
+			reset();
+
+			BeginDrawing();
+			switch (screen)
+			{
+
+			case 1:
+				DrawTexture(texBackground, 0, 0, WHITE);
+
+				for (auto& laser : lasers)
+				{
+					if (laser.active)
+						DrawCircle(laser.pos.x, laser.pos.y, 5, RED);
+				}
+
+				if (IsKeyDown(KEY_W))
+				{
+					DrawTexturePro(texPlayerThru, { 0, 0, (float)texPlayer.width, (float)texPlayer.height }, { player.pos.x, player.pos.y, 100, 100 }, { 50, 50 }, player.rot, WHITE);
+				}
+				else
+				{
+					DrawTexturePro(texPlayer, { 0, 0, (float)texPlayer.width, (float)texPlayer.height }, { player.pos.x, player.pos.y, 100, 100 }, { 50, 50 }, player.rot, WHITE);
+				}
+
+				for (auto& asteroid : asteroids)
+				{
+					if (asteroid.active)
+					{
+						if (asteroid.size == 3)
+						{
+							DrawCircle(asteroid.pos.x, asteroid.pos.y, 100, BROWN);
+							DrawCircleLines(asteroid.pos.x, asteroid.pos.y, 100, WHITE);
+						}
+						if (asteroid.size == 2)
+						{
+							DrawCircle(asteroid.pos.x, asteroid.pos.y, 50, BROWN);
+							DrawCircleLines(asteroid.pos.x, asteroid.pos.y, 50, WHITE);
+						}
+						if (asteroid.size == 1)
+						{
+							DrawCircle(asteroid.pos.x, asteroid.pos.y, 20, BROWN);
+							DrawCircleLines(asteroid.pos.x, asteroid.pos.y, 20, WHITE);
+						}
+					}
+				}
+
+				DrawText(TextFormat("POINTS: %.d", player.points), 50, 50, 20, WHITE);
+
+				for (float i = 1; i <= player.HP; i++)
+				{
+					DrawTexturePro(texHeart, { 0, 0, (float)texHeart.width, (float)texHeart.height }, { 70 * i, 100, 50, 50 }, { 25, 25 }, 0, WHITE);
+				}
+
+				break;
+
+			case 2:
+				DrawTexture(texBackground, 0, 0, WHITE);
+				DrawText("GAME OVER", (scrWidth - MeasureText("GAME OVER", 100)) / 2, scrHeight / 2, 100, RED);
+				DrawText(TextFormat("POINTS: %.d", player.points), (scrWidth - MeasureText("GAME OVER", 100)) / 2, scrHeight / 2 + 150, 50, WHITE);
+				break;
+			}
+			EndDrawing();
+		}
+
+		CloseWindow();
+	}

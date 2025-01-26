@@ -2,6 +2,7 @@
 
 int main(int argc, char** argv)
 {
-    Game();
+    Game game;
+    game.run();
     return 0;
 }
